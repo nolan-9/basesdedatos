@@ -329,3 +329,257 @@ app.delete('/productos/:id', async (req, res) => {
         }
     }
 });
+
+app.get('/carrito', async (req, res) => {
+    let connection;
+    try {
+        connection = await oracledb.getConnection(dbConfig);
+        
+        const result = await connection.execute(
+            `SELECT 
+                c.CARRITO_ID,
+                c.PRODUCTO_ID,
+                c.CANTIDAD,
+                p.NOMBRE,
+                p.DESCRIPCION,
+                p.PRECIO,
+                p.STOCK,
+                (p.PRECIO * c.CANTIDAD) as SUBTOTAL
+             FROM CARRITO c
+             INNER JOIN PRODUCTOS p ON c.PRODUCTO_ID = p.PRODUCTO_ID
+             WHERE c.USUARIO_ID = 1
+             ORDER BY c.FECHA_AGREGADO DESC`
+        );
+        
+        // Calcular total usando la función
+        const totalResult = await connection.execute(
+            `SELECT PKG_CARRITO.CALCULAR_TOTAL_CARRITO(1) as TOTAL FROM DUAL`
+        );
+        
+        res.json({
+            success: true,
+            data: result.rows,
+            total: totalResult.rows[0].TOTAL
+        });
+    } catch (err) {
+        console.error('Error al obtener carrito:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error('Error al cerrar conexión:', err);
+            }
+        }
+    }
+});
+
+// Agregar producto al carrito
+app.post('/carrito', async (req, res) => {
+    let connection;
+    try {
+        const { producto_id, cantidad } = req.body;
+        
+        if (!producto_id || !cantidad) {
+            return res.status(400).json({
+                success: false,
+                message: 'Producto ID y cantidad son obligatorios'
+            });
+        }
+        
+        connection = await oracledb.getConnection(dbConfig);
+        
+        const result = await connection.execute(
+            `BEGIN 
+                PKG_CARRITO.AGREGAR_AL_CARRITO(
+                    :producto_id,
+                    :cantidad,
+                    1,
+                    :resultado,
+                    :mensaje
+                );
+             END;`,
+            {
+                producto_id: parseInt(producto_id),
+                cantidad: parseInt(cantidad),
+                resultado: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+                mensaje: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+            }
+        );
+        
+        if (result.outBinds.resultado === 1) {
+            res.json({
+                success: true,
+                message: result.outBinds.mensaje
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.outBinds.mensaje
+            });
+        }
+    } catch (err) {
+        console.error('Error al agregar al carrito:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error('Error al cerrar conexión:', err);
+            }
+        }
+    }
+});
+
+// Actualizar cantidad en el carrito
+app.put('/carrito/:id', async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { cantidad } = req.body;
+        
+        connection = await oracledb.getConnection(dbConfig);
+        
+        const result = await connection.execute(
+            `BEGIN 
+                PKG_CARRITO.ACTUALIZAR_CANTIDAD(
+                    :carrito_id,
+                    :cantidad,
+                    :resultado,
+                    :mensaje
+                );
+             END;`,
+            {
+                carrito_id: parseInt(id),
+                cantidad: parseInt(cantidad),
+                resultado: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+                mensaje: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+            }
+        );
+        
+        if (result.outBinds.resultado === 1) {
+            res.json({
+                success: true,
+                message: result.outBinds.mensaje
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.outBinds.mensaje
+            });
+        }
+    } catch (err) {
+        console.error('Error al actualizar carrito:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error('Error al cerrar conexión:', err);
+            }
+        }
+    }
+});
+
+// Eliminar item del carrito
+app.delete('/carrito/:id', async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        connection = await oracledb.getConnection(dbConfig);
+        
+        const result = await connection.execute(
+            `BEGIN 
+                PKG_CARRITO.ELIMINAR_DEL_CARRITO(
+                    :carrito_id,
+                    :resultado,
+                    :mensaje
+                );
+             END;`,
+            {
+                carrito_id: parseInt(id),
+                resultado: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+                mensaje: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+            }
+        );
+        
+        if (result.outBinds.resultado === 1) {
+            res.json({
+                success: true,
+                message: result.outBinds.mensaje
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: result.outBinds.mensaje
+            });
+        }
+    } catch (err) {
+        console.error('Error al eliminar del carrito:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error('Error al cerrar conexión:', err);
+            }
+        }
+    }
+});
+
+// Vaciar carrito
+app.delete('/carrito', async (req, res) => {
+    let connection;
+    try {
+        connection = await oracledb.getConnection(dbConfig);
+        
+        const result = await connection.execute(
+            `BEGIN 
+                PKG_CARRITO.VACIAR_CARRITO(
+                    1,
+                    :resultado,
+                    :mensaje
+                );
+             END;`,
+            {
+                resultado: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+                mensaje: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+            }
+        );
+        
+        res.json({
+            success: true,
+            message: result.outBinds.mensaje
+        });
+    } catch (err) {
+        console.error('Error al vaciar carrito:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error('Error al cerrar conexión:', err);
+            }
+        }
+    }
+});

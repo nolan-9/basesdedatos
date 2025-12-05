@@ -8,7 +8,7 @@ function App() {
   const [buscarId, setBuscarId] = useState("");
   const [resultadoBusqueda, setResultadoBusqueda] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('crear'); // 'crear' o 'editar'
+  const [modalMode, setModalMode] = useState('crear');
   const [productoActual, setProductoActual] = useState({
     PRODUCTO_ID: null,
     NOMBRE: '',
@@ -17,15 +17,19 @@ function App() {
     STOCK: ''
   });
 
+  // ===== ESTADOS DEL CARRITO =====
+  const [carrito, setCarrito] = useState([]);
+  const [showCarrito, setShowCarrito] = useState(false);
+  const [totalCarrito, setTotalCarrito] = useState(0);
 
   const API_URL = 'http://localhost:4000/productos';
+  const CARRITO_URL = 'http://localhost:4000/carrito';
 
-  // Cargar productos al iniciar
   useEffect(() => {
     fetchProductos();
+    fetchCarrito();
   }, []);
 
-  // Obtener todos los productos
   const fetchProductos = async () => {
     setLoading(true);
     try {
@@ -41,6 +45,85 @@ function App() {
     }
   };
 
+  // ===== FUNCIONES DEL CARRITO =====
+  const fetchCarrito = async () => {
+    try {
+      const response = await axios.get(CARRITO_URL);
+      if (response.data.success) {
+        setCarrito(response.data.data);
+        setTotalCarrito(response.data.total);
+      }
+    } catch (error) {
+      console.error('Error al cargar carrito:', error);
+    }
+  };
+
+  const agregarAlCarrito = async (productoId, cantidad = 1) => {
+    try {
+      const response = await axios.post(CARRITO_URL, {
+        producto_id: productoId,
+        cantidad: cantidad
+      });
+
+      if (response.data.success) {
+        alert(response.data.message);
+        fetchCarrito();
+      } else {
+        alert(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error al agregar al carrito:', error);
+      alert('Error al agregar al carrito');
+    }
+  };
+
+  const actualizarCantidadCarrito = async (carritoId, nuevaCantidad) => {
+    if (nuevaCantidad < 1) return;
+
+    try {
+      const response = await axios.put(`${CARRITO_URL}/${carritoId}`, {
+        cantidad: nuevaCantidad
+      });
+
+      if (response.data.success) {
+        fetchCarrito();
+      } else {
+        alert(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error al actualizar cantidad:', error);
+      alert('Error al actualizar cantidad');
+    }
+  };
+
+  const eliminarDelCarrito = async (carritoId) => {
+    try {
+      const response = await axios.delete(`${CARRITO_URL}/${carritoId}`);
+      if (response.data.success) {
+        alert(response.data.message);
+        fetchCarrito();
+      }
+    } catch (error) {
+      console.error('Error al eliminar del carrito:', error);
+      alert('Error al eliminar del carrito');
+    }
+  };
+
+  const vaciarCarrito = async () => {
+    if (!window.confirm('¿Estás seguro de vaciar el carrito?')) return;
+
+    try {
+      const response = await axios.delete(CARRITO_URL);
+      if (response.data.success) {
+        alert(response.data.message);
+        fetchCarrito();
+      }
+    } catch (error) {
+      console.error('Error al vaciar carrito:', error);
+      alert('Error al vaciar carrito');
+    }
+  };
+
   const buscarProducto = async () => {
     if (!buscarId) return alert("Ingresa un ID");
 
@@ -51,7 +134,7 @@ function App() {
       const response = await axios.get(`${API_URL}/${buscarId}`);
 
       if (response.data.success && response.data.data) {
-        setResultadoBusqueda(response.data.data);  // ya no es array
+        setResultadoBusqueda(response.data.data);
       } else {
         alert("Producto no encontrado");
       }
@@ -63,7 +146,6 @@ function App() {
     }
   };
 
-  // Abrir modal para crear
   const abrirModalCrear = () => {
     setModalMode('crear');
     setProductoActual({
@@ -76,14 +158,12 @@ function App() {
     setShowModal(true);
   };
 
-  // Abrir modal para editar
   const abrirModalEditar = (producto) => {
     setModalMode('editar');
     setProductoActual(producto);
     setShowModal(true);
   };
 
-  // Cerrar modal
   const cerrarModal = () => {
     setShowModal(false);
     setProductoActual({
@@ -95,7 +175,6 @@ function App() {
     });
   };
 
-  // Guardar producto (crear o actualizar)
   const guardarProducto = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -130,7 +209,6 @@ function App() {
     }
   };
 
-  // Eliminar producto
   const eliminarProducto = async (id, nombre) => {
     if (!window.confirm(`¿Estás seguro de eliminar el producto "${nombre}"?`)) {
       return;
@@ -153,7 +231,6 @@ function App() {
     }
   };
 
-  // Manejar cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setProductoActual(prev => ({
@@ -162,31 +239,34 @@ function App() {
     }));
   };
 
+  const contarItemsCarrito = () => {
+    return carrito.reduce((total, item) => total + item.CANTIDAD, 0);
+  };
+
   return (
     <div className="container">
-      <h1>Mercado de Productos</h1>
+      <h1>🛒 Mercado de Productos</h1>
 
       <div className="header-actions">
-        <div className="search-bar">
-          <input
-            type="number"
-            placeholder="Buscar por ID..."
-            value={buscarId}
-            onChange={(e) => setBuscarId(e.target.value)}
-          />
-          <button className="btn btn-primary" onClick={buscarProducto} disabled={loading}>
-            Buscar
-          </button>
+        <input
+          type="number"
+          placeholder="Buscar por ID..."
+          value={buscarId}
+          onChange={(e) => setBuscarId(e.target.value)}
+        />
+        <button className="btn btn-primary" onClick={buscarProducto} disabled={loading}>
+          Buscar
+        </button>
 
-          {resultadoBusqueda && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => setResultadoBusqueda(null)}
-            >
-              Limpiar
-            </button>
-          )}
-        </div>
+        {resultadoBusqueda && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => setResultadoBusqueda(null)}
+          >
+            Limpiar
+          </button>
+        )}
+        
         <button
           className="btn btn-primary"
           onClick={abrirModalCrear}
@@ -194,12 +274,21 @@ function App() {
         >
           Nuevo Producto
         </button>
+        
         <button
           className="btn btn-secondary"
           onClick={fetchProductos}
           disabled={loading}
         >
           Actualizar
+        </button>
+
+        {/* Botón del carrito */}
+        <button
+          className="btn btn-cart"
+          onClick={() => setShowCarrito(!showCarrito)}
+        >
+          🛒 Carrito ({contarItemsCarrito()})
         </button>
       </div>
 
@@ -208,7 +297,6 @@ function App() {
       {resultadoBusqueda && (
         <div className="producto-card highlight">
           <h3>Resultado de búsqueda</h3>
-
           <h4>{resultadoBusqueda.NOMBRE}</h4>
           <p>{resultadoBusqueda.DESCRIPCION}</p>
 
@@ -217,15 +305,22 @@ function App() {
             <p>Stock: {resultadoBusqueda.STOCK}</p>
           </div>
 
-          <button
-            className="btn btn-edit"
-            onClick={() => abrirModalEditar(resultadoBusqueda)}
-          >
-            Editar
-          </button>
+          <div className="producto-actions">
+            <button
+              className="btn btn-add-cart"
+              onClick={() => agregarAlCarrito(resultadoBusqueda.PRODUCTO_ID)}
+            >
+              Agregar al Carrito
+            </button>
+            <button
+              className="btn btn-edit"
+              onClick={() => abrirModalEditar(resultadoBusqueda)}
+            >
+              Editar
+            </button>
+          </div>
         </div>
       )}
-
 
       <div className="productos-grid">
         {productos.map(producto => (
@@ -256,6 +351,13 @@ function App() {
 
             <div className="producto-actions">
               <button
+                className="btn btn-add-cart"
+                onClick={() => agregarAlCarrito(producto.PRODUCTO_ID)}
+                disabled={loading || producto.STOCK === 0}
+              >
+                🛒 Agregar
+              </button>
+              <button
                 className="btn btn-edit"
                 onClick={() => abrirModalEditar(producto)}
                 disabled={loading}
@@ -283,7 +385,7 @@ function App() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal de Producto */}
       {showModal && (
         <div className="modal-overlay" onClick={cerrarModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -362,6 +464,103 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal del Carrito */}
+      {showCarrito && (
+        <div className="modal-overlay" onClick={() => setShowCarrito(false)}>
+          <div className="modal modal-carrito" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🛒 Mi Carrito ({contarItemsCarrito()} items)</h2>
+              <button className="modal-close" onClick={() => setShowCarrito(false)}>✕</button>
+            </div>
+
+            <div className="carrito-content">
+              {carrito.length === 0 ? (
+                <div className="carrito-vacio">
+                  <p>Tu carrito está vacío</p>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => setShowCarrito(false)}
+                  >
+                    Continuar comprando
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="carrito-items">
+                    {carrito.map(item => (
+                      <div key={item.CARRITO_ID} className="carrito-item">
+                        <div className="item-info">
+                          <h4>{item.NOMBRE}</h4>
+                          <p className="item-descripcion">{item.DESCRIPCION}</p>
+                          <p className="item-precio">
+                            ${parseFloat(item.PRECIO).toFixed(2)} c/u
+                          </p>
+                        </div>
+
+                        <div className="item-cantidad">
+                          <button 
+                            className="btn-cantidad"
+                            onClick={() => actualizarCantidadCarrito(item.CARRITO_ID, item.CANTIDAD - 1)}
+                            disabled={item.CANTIDAD <= 1}
+                          >
+                            -
+                          </button>
+                          <span className="cantidad-valor">{item.CANTIDAD}</span>
+                          <button 
+                            className="btn-cantidad"
+                            onClick={() => actualizarCantidadCarrito(item.CARRITO_ID, item.CANTIDAD + 1)}
+                            disabled={item.CANTIDAD >= item.STOCK}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="item-subtotal">
+                          <p className="subtotal-label">Subtotal:</p>
+                          <p className="subtotal-valor">
+                            ${parseFloat(item.SUBTOTAL).toFixed(2)}
+                          </p>
+                        </div>
+
+                        <button 
+                          className="btn-eliminar"
+                          onClick={() => eliminarDelCarrito(item.CARRITO_ID)}
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="carrito-footer">
+                    <div className="carrito-total">
+                      <h3>Total:</h3>
+                      <h2 className="total-valor">${parseFloat(totalCarrito).toFixed(2)}</h2>
+                    </div>
+
+                    <div className="carrito-acciones">
+                      <button 
+                        className="btn btn-secondary"
+                        onClick={vaciarCarrito}
+                      >
+                        Vaciar Carrito
+                      </button>
+                      <button 
+                        className="btn btn-primary btn-finalizar"
+                        onClick={() => alert('Función de compra no implementada aún')}
+                      >
+                        Finalizar Compra
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

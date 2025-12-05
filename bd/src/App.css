@@ -27,6 +27,7 @@ h1 {
   justify-content: center;
   gap: 10px;
   margin-bottom: 30px;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -39,13 +40,18 @@ h1 {
   transition: all 0.2s ease;
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Botones estilo Amazon */
 .btn-primary {
   background-color: #ffa41c;
   color: #111;
   border-color: #ff9900;
 }
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: #ff8f00;
 }
 
@@ -53,7 +59,7 @@ h1 {
   background-color: #37475a;
   color: white;
 }
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: #232f3e;
 }
 
@@ -61,7 +67,7 @@ h1 {
   background-color: #007185;
   color: white;
 }
-.btn-edit:hover {
+.btn-edit:hover:not(:disabled) {
   background-color: #005f6b;
 }
 
@@ -69,8 +75,31 @@ h1 {
   background-color: #b12704;
   color: white;
 }
-.btn-delete:hover {
+.btn-delete:hover:not(:disabled) {
   background-color: #a12003;
+}
+
+/* Botón del carrito */
+.btn-cart {
+  background-color: #146eb4;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 24px;
+  position: relative;
+}
+.btn-cart:hover:not(:disabled) {
+  background-color: #0f5a96;
+}
+
+/* Botón agregar al carrito */
+.btn-add-cart {
+  background-color: #28a745;
+  color: white;
+  flex: 1;
+}
+.btn-add-cart:hover:not(:disabled) {
+  background-color: #218838;
 }
 
 /* Grid de productos */
@@ -197,6 +226,14 @@ h1 {
   padding: 0;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal del carrito más ancho */
+.modal-carrito {
+  max-width: 700px;
 }
 
 .modal-header {
@@ -205,6 +242,7 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #f8f9fa;
 }
 
 .modal-header h2 {
@@ -219,10 +257,21 @@ h1 {
   font-size: 1.5em;
   color: #888;
   cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #333;
 }
 
 .modal form {
   padding: 20px;
+  overflow-y: auto;
 }
 
 .form-group {
@@ -244,6 +293,7 @@ h1 {
   border-radius: 4px;
   font-size: 15px;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -268,24 +318,241 @@ h1 {
   margin-top: 15px;
 }
 
+/* ===== ESTILOS DEL CARRITO ===== */
+.carrito-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 60px);
+  overflow: hidden;
+}
+
+.carrito-vacio {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.carrito-vacio p {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
+
+.carrito-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  max-height: 400px;
+}
+
+.carrito-item {
+  display: grid;
+  grid-template-columns: 2fr 120px 100px 40px;
+  gap: 15px;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.carrito-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.item-info h4 {
+  margin: 0 0 8px 0;
+  color: #0f1111;
+  font-size: 1.1em;
+}
+
+.item-descripcion {
+  color: #666;
+  font-size: 0.9em;
+  margin: 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-precio {
+  color: #b12704;
+  font-weight: 600;
+  margin: 8px 0 0 0;
+}
+
+.item-cantidad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-cantidad {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f1111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-cantidad:hover:not(:disabled) {
+  background: #f0f2f2;
+  border-color: #aaa;
+}
+
+.btn-cantidad:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cantidad-valor {
+  font-weight: 600;
+  font-size: 1.1em;
+  min-width: 30px;
+  text-align: center;
+}
+
+.item-subtotal {
+  text-align: right;
+}
+
+.subtotal-label {
+  font-size: 0.85em;
+  color: #666;
+  margin: 0 0 4px 0;
+}
+
+.subtotal-valor {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #b12704;
+  margin: 0;
+}
+
+.btn-eliminar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 5px;
+  transition: transform 0.2s ease;
+}
+
+.btn-eliminar:hover {
+  transform: scale(1.2);
+}
+
+.carrito-footer {
+  border-top: 2px solid #ddd;
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+.carrito-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #fff;
+  border-radius: 6px;
+  border: 2px solid #ffa41c;
+}
+
+.carrito-total h3 {
+  margin: 0;
+  color: #0f1111;
+  font-size: 1.3em;
+}
+
+.total-valor {
+  margin: 0;
+  color: #b12704;
+  font-size: 2em;
+  font-weight: 700;
+}
+
+.carrito-acciones {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.btn-finalizar {
+  flex: 1;
+  font-size: 16px;
+  padding: 12px 24px;
+}
+
 .highlight {
   border: 2px solid #007bff;
   background: #eef5ff;
 }
+
 .search-bar {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
 }
+
 .search-bar input {
   padding: 8px;
   flex: 1;
 }
 
+.loading {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.1em;
+  color: #666;
+}
 
 /* Responsivo */
 @media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .carrito-item {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .item-cantidad,
+  .item-subtotal {
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+  }
+  
+  .btn-eliminar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+  
+  .carrito-item {
+    position: relative;
+    padding-top: 40px;
+  }
+  
+  .carrito-acciones {
+    flex-direction: column;
   }
 }
