@@ -1,0 +1,4 @@
+.env
+**/node_modules/
+bd/mercado_backup.sql
+/dist

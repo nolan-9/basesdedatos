@@ -22,8 +22,8 @@ function App() {
   const [showCarrito, setShowCarrito] = useState(false);
   const [totalCarrito, setTotalCarrito] = useState(0);
 
-  const API_URL = 'http://localhost:4000/productos';
-  const CARRITO_URL = 'http://localhost:4000/carrito';
+  const API_URL = '/api/productos';
+  const CARRITO_URL = '/api/carrito';  
 
   useEffect(() => {
     fetchProductos();

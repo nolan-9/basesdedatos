@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  backend:
+    build: ./back
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./back:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}    
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./bd
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    profiles:
+      - prod
+
+  frontend-dev:
+    build:
+      context: ./bd
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./bd:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    profiles:
+      - dev  
+    
+volumes:
+  postgres_data:
