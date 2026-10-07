@@ -245,7 +245,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>🛒 Mercado de Productos</h1>
+      <h1>Mercado de Productos</h1>
 
       <div className="header-actions">
         <input
@@ -288,7 +288,7 @@ function App() {
           className="btn btn-cart"
           onClick={() => setShowCarrito(!showCarrito)}
         >
-          🛒 Carrito ({contarItemsCarrito()})
+          Carrito ({contarItemsCarrito()})
         </button>
       </div>
 
@@ -355,7 +355,7 @@ function App() {
                 onClick={() => agregarAlCarrito(producto.PRODUCTO_ID)}
                 disabled={loading || producto.STOCK === 0}
               >
-                🛒 Agregar
+                Agregar
               </button>
               <button
                 className="btn btn-edit"
